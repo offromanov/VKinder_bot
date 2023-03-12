@@ -1,6 +1,7 @@
 import vk_api
+import requests
 from vk_api.bot_longpoll import VkBotLongPoll, VkBotEventType
-from Bot_db import UserStatus, user_list, update_status, check_or_create_user, search_users, get_photo
+from Bot_db import UserStatus, user_list, update_status, check_or_create_user
 from tokens import token, user_token
 
 vk = vk_api.VkApi(token=token)
@@ -32,33 +33,41 @@ for event in longpoll.listen():
                                 Возраст - (Например: 22)'''})
 
 
-            elif request == "пока":
+        elif request == "пока":
                 write_msg(event.user_id, "Пока((")
     else:
         write_msg(event.user_id, "Не поняла вашего ответа...")
 
-searching = search_users(sex, age, city)
+def search_user(user_id):
+    request_paramas = {
+                'access_token': user_token,
+                'v': '5.131',
+                'age': self.check_or_create_user(user_id),
+                'sex': self.check_or_create_user(user_id),
+                'city': self.check_or_create_user(user_id),}
 
-            searching = search_users(sex, age, city)
+    if request_paramas:
+        if request_paramas.get('items'):
+            return request_paramas.get('items')
+        write_msg(user_id, 'Ошибка')
+        return False
 
-            for i in range(len(searching)):
-                dating_user = check_or_create_user(searching[i][3])
-                user_photo = get_photo(searching[i][3])
-                if  dating_user == None:
-                    user(searching[i][0], searching[i][1], searching[i][2], searching[i][3])
-                    link = searching[i][3]
-                    write_msg_with_att(user_id, photo, link)
-                    write_msg(user_id, 'Продолжаем поиск? - y\n'
-                                        'Закончить поиск / Выход - n')
-                    request, user_id = reboot_bot()
-                    if request == '1':
-                        continue
-                    elif request == '2':
-                        write_msg(user_id, 'Нажми любую кнопку для перезапуска')
-                        break
-                    else:
-                        write_msg(user_id, 'Нажми что угодно!')
-                        break
-                else:
-                    continue
-            write_msg(user_id, 'Нажми что угодно!')
+def search_foto(user_id):
+    try:
+        request_params = {
+            'access_token': user_token,
+            'v': '5.131',
+            'albumn_id': 'profile',
+            'extended': '1'}
+        if request_paramas.get('count'):
+            if request_paramas.get('count') < 3:
+                return False
+            top_photos = sorted(request_paramas.get('items'), key=lambda x: x['likes']['count']
+                                + x['comments']['count'], reverse=True)[:3]
+            photo_data = {'user_id': top_photos[0]['access_token'], 'photo_ids': []}
+            for photo in top_photos:
+                photo_data['photo_ids'].append(photo['id'])
+            return photo_data
+        return False
+    except vk_api.exceptions.ApiError as error:
+        print(error)

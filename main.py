@@ -1,73 +1,232 @@
+from datetime import datetime
+
 import vk_api
 import requests
-from vk_api.bot_longpoll import VkBotLongPoll, VkBotEventType
-from Bot_db import UserStatus, user_list, update_status, check_or_create_user
-from tokens import token, user_token
+from vk_api.longpoll import VkLongPoll, VkEventType
+from Bot_db import *
 
-vk = vk_api.VkApi(token=token)
-longpoll = VkBotLongPoll(bh, group_id='219207094')
+from vk_api.exceptions import ApiError
+from vk_api.utils import get_random_id
 
-if __name__='__main__':
-    while True:
-        if request, user_id = reboot_bot()
-
-def write_msg(user_id, additional):
-    message_payload = {'peer_id': user_id, 'random_id': 0, **additional}
-    vk.method('messages.send', message_payload)
-
-for event in longpoll.listen():
-
-    if event.type == VkBotEventType.MESSAGE_NEW:
-        request = event.object.message['text'].lower()
-        user_id = event.object.message['from_id']
-        if not check_or_create_user(user_id):
-            write_msg(user_id, {'message': 'Привет! я бот, который поможет тебе найти свою половинку. Елси хочешь '
-                'начать, пришли мне слово "Данные"',)
-
-        elif request == 'данные':
-            update_status(user_id, UserStatus.DATA_UPDATING)
-            write_msg(user_id, {'message': ''''Давай заполним твои данные: 
-                                Пришли свои данные в формате:
-                                Пол - мужской или женский;
-                                Город - (Например: Санкт-Петербург);
-                                Возраст - (Например: 22)'''})
+from tokens import com_token, user_token
 
 
-        elif request == "пока":
-                write_msg(event.user_id, "Пока((")
+class VkTools():
+    def __init__(self, token):
+        self.ext_api = vk_api.VkApi(token=token)
+
+    def get_profile_info(self, user_id):
+
+        try:
+            info, = self.ext_api.method('users.get',
+                                        {'user_id': user_id,
+                                         'fields': 'bdate,city,sex,'
+                                         }
+                                        )
+        except ApiError:
+            return None
+        return info
+
+    def users_search(self, info, offset=0):
+
+        try:
+            users = self.ext_api.method('users.search',
+                                        {'city_id': info['city_id'],
+                                         'age_from': info['from_date'],
+                                         'age_to': info['to_date'],
+                                         'sex': info['sex'],
+                                         'count': 50,
+                                         'offset': offset
+                                         }
+                                        )
+        except ApiError:
+            return None
+
+        try:
+            users = users['items']
+        except KeyError:
+            return None
+        result = []
+        for user in users:
+            if user['is_closed'] == False:
+                result.append({'first_name': user['first_name'],
+                               'last_name': user['last_name'],
+                               'id': user['id']
+                               }
+                              )
+        return result
+
+    def photos_get(self, user_id):
+
+        try:
+            photos = self.ext_api.method('photos.get',
+                                         {'owner_id': user_id,
+                                          'album_id': 'profile',
+                                          }
+                                         )
+        except ApiError:
+            return None
+
+        try:
+            photos = photos['items']
+        except KeyError:
+            return None
+        result = []
+
+        for num, photo in enumerate(photos):
+            result.append({'owner_id': photo['owner_id'],
+                           'media_id': photo['id']
+                           })
+            if num == 3:
+                break
+
+            for element in photos:
+                if element = ['нет фото'] and photos = 'нет фото':
+                    result.append(element)
+            return sorted(result)
+        return result
+
+
+def write_msg(interface, user_id, message=None, attachment=None):
+    interface.method('messages.send',
+                     {'user_id': user_id,
+                      'message': message,
+                      'attachment': attachment,
+                      'random_id': get_random_id()}
+                     )
+
+
+def get_date_from_chat():
+    if event.from_user:
+        vk.messages.send(
+            user_id=user_id,
+            write_msg='Введите ваш возраст'
+	        )
+    pass
+    return (25, 30)
+
+
+def get_city_from_chat():
+    if event.from_user:
+        vk.messages.send(
+            user_id=user_id,
+            write_msg='Введите ваш город'
+	        )
+    pass
+    return 1
+
+
+def get_gender_from_chat():
+    if event.from_user:
+        vk.messages.send(
+            user_id=user_id,
+            write_msg='Введите ваш пол'
+	        )
+    pass
+    return 1
+
+
+def user_validator(info):
+    result = {}
+    if 'bdate' in info:
+        b_year = int(info['bdate'].split('.')[2])
+        now = datetime.now()
+        age_uer = int(now.year) - b_year
+        result['from_date'] = age_uer - 5
+        result['to_date'] = age_uer + 5
     else:
-        write_msg(event.user_id, "Не поняла вашего ответа...")
+        from_date, to_date = get_date_from_chat()
 
-def search_user(user_id):
-    request_paramas = {
-                'access_token': user_token,
-                'v': '5.131',
-                'age': self.check_or_create_user(user_id),
-                'sex': self.check_or_create_user(user_id),
-                'city': self.check_or_create_user(user_id),}
+    if 'city' in info:
+        result['city_id'] = info['city']['id']
+    else:
+        result['city_id'] = get_city_from_chat()
 
-    if request_paramas:
-        if request_paramas.get('items'):
-            return request_paramas.get('items')
-        write_msg(user_id, 'Ошибка')
-        return False
+    if 'sex' in info:
+        result['sex'] = 1 if info['sex'] == 2 else 2
+    else:
+        result['sex'] = get_gender_from_chat()
 
-def search_foto(user_id):
-    try:
-        request_params = {
-            'access_token': user_token,
-            'v': '5.131',
-            'albumn_id': 'profile',
-            'extended': '1'}
-        if request_paramas.get('count'):
-            if request_paramas.get('count') < 3:
-                return False
-            top_photos = sorted(request_paramas.get('items'), key=lambda x: x['likes']['count']
-                                + x['comments']['count'], reverse=True)[:3]
-            photo_data = {'user_id': top_photos[0]['access_token'], 'photo_ids': []}
-            for photo in top_photos:
-                photo_data['photo_ids'].append(photo['id'])
-            return photo_data
-        return False
-    except vk_api.exceptions.ApiError as error:
-        print(error)
+    return result
+
+
+if __name__ == '__main__':
+    vk_interface = vk_api.VkApi(token=com_token)
+    longpoll = VkLongPoll(vk_interface)
+    tools = VkTools(user_token)
+    info_for_search = None
+    offset = 0
+
+    for event in longpoll.listen():
+
+        if event.type == VkEventType.MESSAGE_NEW and event.to_me:
+            request = event.text.lower()
+            user_id = event.user_id
+            if request == 'привет':
+                write_msg(vk_interface, user_id,
+                          '''Привет! я бот, который поможет тебе найти свою половинку. 
+                             Елси хочешь начать, пришли мне слово "поиск"'''
+                          )
+                user_info = tools.get_profile_info(user_id)
+                if user_info:
+                    info_for_search = user_validator(user_info)
+                else:
+                    write_msg(vk_interface, user_id,
+                              '''данные не получены попробуйте позже'''
+                              )
+
+            if request == 'поиск':
+                if info_for_search:
+                    '''здесь дублирование'''
+                    users = tools.users_search(info_for_search)
+                    user = users.pop()
+                    photos = tools.photos_get(user['id'])
+                    if photos:
+                        write_msg(vk_interface, user_id,
+                                  f'Страница пользователя {user["first_name"]} {user["last_name"]}')
+                        write_msg(vk_interface, user_id, f'Ссылка на страницу vk.com/id{user["id"]}')
+                        for photo in photos:
+                            write_msg(vk_interface, user_id, attachment=f'photo{photo["owner_id"]}_{photo["media_id"]}')
+                            add_data_users(user_id)
+                    else:
+                        write_msg(vk_interface, user_id, 'внутренняя ошибка, приносим свои извинения')
+
+
+                else:
+                    '''здесь дублирование'''
+                    user_info = tools.get_profile_info(user_id)
+                    info_for_search = user_validator(user_info)
+                    users = tools.users_search(info_for_search)
+                    user = users.pop()
+                    photos = tools.photos_get(user['id'])
+                    if photos:
+                        write_msg(vk_interface, user_id,
+                                  f'Страница пользователя {user["first_name"]} {user["last_name"]}'
+                                  )
+                        write_msg(vk_interface, user_id, f'Ссылка на страницу vk.com/id{user["id"]}')
+                        for photo in photos:
+                            write_msg(vk_interface, user_id, attachment=f'photo{photo["owner_id"]}_{photo["media_id"]}')
+                            add_data_users(user_id)
+                    else:
+                        write_msg(vk_interface, user_id, 'внутренняя ошибка, приносим свои извинения')
+
+            if request == 'дальше':
+                user = users.pop()
+                photos = tools.photos_get(user['id'])
+                if photos:
+                    write_msg(vk_interface, user_id,
+                              f'Страница пользователя {user["first_name"]} {user["last_name"]}')
+                    write_msg(vk_interface, user_id, f'Ссылка на страницу vk.com/id{user["id"]}')
+                    for photo in photos:
+                        write_msg(vk_interface, user_id, attachment=f'photo{photo["owner_id"]}_{photo["media_id"]}')
+                        add_data_users(user_id)
+                else:
+                    write_msg(vk_interface, user_id, 'внутренняя ошибка, приносим свои извинения')
+
+                if len(users) == 0:
+                    users = tools.users_search(info_for_search, offset=offset + 50)
+
+            elif request == "пока":
+                write_msg(vk_interface, event.user_id, "Пока((")
+            else:
+                write_msg(vk_interface, user_id, "Не поняла вашего ответа...")

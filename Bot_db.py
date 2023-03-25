@@ -1,32 +1,21 @@
-import vk_api
-from vk_api.bot_longpoll import VkBotLongPoll, VkBotEventType
-from tokens import token, user_token
+import psycopg2
 
+with psycopg2.connect(database="Bot_db", user="postgres", password="postgres") as conn:
 
-user_list = {}
+def create_table_users():
+    with conn.cursor() as cur:
+        cur.execute(
+            """CREATE TABLE IF NOT EXISTS users(
+                id serial,
+                first_name varchar(50) NOT NULL,
+                last_name varchar(25) NOT NULL,
+                user_id varchar(20) NOT NULL PRIMARY KEY,"""
+        )
+    print("[INFO] Table USERS was created.")
 
-
-class UserStatus(Enum):
-    IDLE = 'idle'
-    DATA_UPDATING = 'data_updating'
-
-
-def check_or_create_user(self, user_id):
-    if user_id in user_list:
-        return True
-    user = {
-        'data': {
-            'age': {},
-            'sex': {},
-            'city': {},
-        },
-        'status': UserStatus.IDLE.value
-    }
-    user_list.update({user_id: user})
-    return False
-
-def update_status(user_id, status):
-    user = user_list.get(user_id)
-
-    user['status'] = status.value
-    user_list.update({user_id: user})
+def add_data_users(first_name, last_name, user_id):
+    with conn.cursor() as cur:
+        cur.execute(
+            f"""INSERT INTO users (first_name, last_name, user_id) 
+            VALUES ('{first_name}', '{last_name}', '{user_id}');"""
+        )

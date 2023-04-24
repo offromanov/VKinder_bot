@@ -180,6 +180,7 @@ if __name__ == '__main__':
                               )
 
             if request == 'поиск':
+                offset += 10
                 if info_for_search:
                     search = search_profile(user_id)
 

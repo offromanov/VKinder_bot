@@ -19,7 +19,7 @@ class VkTools():
     def get_profile_info(self, user_id):
 
         try:
-            info, = self.ext_api.method('users.get',
+            info = self.ext_api.method('users.get',
                                         {'user_id': user_id,
                                          'fields': 'bdate,city,sex,'
                                          }
@@ -85,125 +85,125 @@ class VkTools():
         return result
 
 
-def write_msg(interface, user_id, message=None, attachment=None):
-    interface.method('messages.send',
-                     {'user_id': user_id,
-                      'message': message,
-                      'attachment': attachment,
-                      'random_id': get_random_id()}
-                     )
+    def write_msg(self, user_id, message=None, attachment=None):
+        self.method('messages.send',
+                        {'user_id': user_id,
+                        'message': message,
+                        'attachment': attachment,
+                        'random_id': get_random_id()}
+                        )
 
 
-def get_bdate_info_from_chat(self, user_id):
-    info = vk.method('users.get', {
-        'user_id': user_id,
-        'fields': 'bdate',
-    })
+    def get_bdate_info_from_chat(self, user_id):
+        info = self.method('users.get', {
+            'user_id': user_id,
+            'fields': 'bdate',
+        })
         bdate = info[0]['bdate']
-    print(f'Пользователь родился: {bdate}')
-    year = int(bdate.split(".")[2])
-    month = int(bdate.split(".")[1])
-    day = int(bdate.split(".")[0])
-    bd = datetime.date(year, month, day)
-    age = int((td - bd).days / 365.25)
-    print(f'Пользователю {age} лет')
-    return age
+        print(f'Пользователь родился: {bdate}')
+        year = int(bdate.split(".")[2])
+        month = int(bdate.split(".")[1])
+        day = int(bdate.split(".")[0])
+        bd = datetime.date(year, month, day)
+        age = int((td - bd).days / 365.25)
+        print(f'Пользователю {age} лет')
+        return age
 
 
-def get_city_info_from_chat(self, user_id):
-    info = vk.method('users.get', {
-        'user_id': user_id,
-        'fields': 'city',
-    })
-    city = info[0]['city']['title']
-    print(f'Пользователь из города: {city}')
-    return city
+    def get_city_info_from_chat(self, user_id):
+        info = self.method('users.get', {
+            'user_id': user_id,
+            'fields': 'city',
+        })
+        city = info[0]['city']['title']
+        print(f'Пользователь из города: {city}')
+        return city
 
 
-def get_gender_info_from_chat(self, user_id):
-    info = vk.method('users.get', {
-        'user_id': user_id,
-        'fields': 'gender',
-    })
-    gender = info[0]['gender']
-    print(f'Половая принадлежность пользователя: {gender}')
-    return gender
+    def get_gender_info_from_chat(self, user_id):
+        info = self.method('users.get', {
+            'user_id': user_id,
+            'fields': 'gender',
+        })
+        gender = info[0]['gender']
+        print(f'Половая принадлежность пользователя: {gender}')
+        return gender
 
 
-def user_validator(info):
-    result = []
-    if 'bdate' in info:
-        b_year = int(info['bdate'].split('.')[2])
-        now = datetime.now()
-        age_uer = int(now.year) - b_year
-        result['from_date'] = age_uer - 5
-        result['to_date'] = age_uer + 5
-    else:
-        from_date, to_date = get_bdate_info_from_chat()
+    def user_validator(info):
+        result = []
+        if 'bdate' in info:
+            b_year = int(info['bdate'].split('.')[2])
+            now = datetime.now()
+            age_uer = int(now.year) - b_year
+            result['from_date'] = age_uer - 5
+            result['to_date'] = age_uer + 5
+        else:
+            from_date, to_date = get_bdate_info_from_chat()
 
-    if 'city' in info:
-        result['city_id'] = info['city']['id']
-    else:
-        result['city_id'] = get_city_info_from_chat()
+        if 'city' in info:
+            result['city'] = info['city']['id']
+        else:
+            result['city'] = get_city_info_from_chat()
 
-    if 'gender' in info:
-        result['gender'] = 1 if info['gender'] == 2 else 2
-    else:
-        result['gender'] = get_gender_info_from_chat()
+        if 'gender' in info:
+            result['gender'] = 1 if info['gender'] == 2 else 2
+        else:
+            result['gender'] = get_gender_info_from_chat()
 
-    return result
+        return result
 
 
-if __name__ == '__main__':
-    vk_interface = vk_api.VkApi(token=com_token)
-    longpoll = VkLongPoll(vk_interface)
-    tools = VkTools(user_token)
-    info_for_search = None
-    offset = 0
+        if __name__ == '__main__':
+            vk_interface = vk_api.VkApi(token=com_token)
+            longpoll = VkLongPoll(vk_interface)
+            tools = VkTools(user_token)
+            info_for_search = None
+            offset = 0
 
-    for event in longpoll.listen():
+            for event in longpoll.listen():
 
-        if event.type == VkEventType.MESSAGE_NEW and event.to_me:
-            request = event.text.lower()
-            user_id = event.user_id
-            if request == 'привет':
-                write_msg(vk_interface, user_id,
-                          '''Привет! я бот, который поможет тебе найти свою половинку. 
-                             Елси хочешь начать, пришли мне слово "поиск"'''
-                          )
-                user_info = tools.get_profile_info(user_id)
-                if user_info:
-                    info_for_search = user_validator(user_info)
-                else:
-                    write_msg(vk_interface, user_id,
-                              '''данные не получены попробуйте позже'''
-                              )
+                if event.type == VkEventType.MESSAGE_NEW and event.to_me:
+                    request = event.text.lower()
+                    user_id = event.user_id
+                    if request == 'привет':
+                        write_msg(vk_interface, user_id,
+                            '''Привет! я бот, который поможет тебе найти свою половинку. 
+                                Елси хочешь начать, пришли мне слово "поиск"'''
+                            )
+                        user_info = tools.get_profile_info(user_id)
+                        if user_info:
+                            info_for_search = user_validator(user_info)
+                        else:
+                            write_msg(vk_interface, user_id,
+                                '''данные не получены попробуйте позже'''
+                                )
 
-            if request == 'поиск':
-                offset += 10
-                if info_for_search:
-                    search = search_profile(user_id)
+                    if request == 'поиск':
+                        offset += 10
+                        if info_for_search:
+                            search = search_profile(user_id)
 
-                else:
-                  search = get_photos(user_id)
+                        else:
+                            search = get_photos(user_id)
 
-            if request == 'дальше':
-                user = users.pop()
-                photos = tools.photos_get(user['id'])
-                if photos:
-                    write_msg(vk_interface, user_id,
-                              f'Страница пользователя {user["first_name"]} {user["last_name"]}')
-                    write_msg(vk_interface, user_id, f'Ссылка на страницу vk.com/id{user["id"]}')
-                    for photo in photos:
-                        write_msg(vk_interface, user_id, attachment=f'photo{photo["owner_id"]}_{photo["media_id"]}')
-                        add_data_users(user_id)
-                else:
-                    write_msg(vk_interface, user_id, 'внутренняя ошибка, приносим свои извинения')
+                    if request == 'дальше':
+                        user = users.pop()
+                        photos = tools.photos_get(user['id'])
+                        if photos:
+                            write_msg(vk_interface, user_id,
+                                f'Страница пользователя {user["first_name"]} {user["last_name"]}')
+                            write_msg(vk_interface, user_id, f'Ссылка на страницу vk.com/id{user["id"]}')
+                            for photo in photos:
+                                write_msg(vk_interface, user_id, attachment=f'photo{photo["owner_id"]}_{photo["media_id"]}')
+                                add_data_users(user_id)
+                        else:
+                            write_msg(vk_interface, user_id, 'внутренняя ошибка, приносим свои извинения')
 
-                if len(users) == 0:
-                    users = tools.users_search(info_for_search, offset=offset + 50)
+                        if len(users) == 0:
+                            users = tools.users_search(info_for_search, offset=offset + 50)
 
-            elif request == "пока":
-                write_msg(vk_interface, event.user_id, "Пока((")
-            else:
-                write_msg(vk_interface, user_id, "Не поняла вашего ответа...")
+                    elif request == "пока":
+                        write_msg(vk_interface, event.user_id, "Пока((")
+                    else:
+                        write_msg(vk_interface, user_id, "Не поняла вашего ответа...")
